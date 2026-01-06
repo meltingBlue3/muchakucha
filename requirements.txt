@@ -14,8 +14,10 @@ bcrypt==3.2.2
 python-multipart>=0.0.12
 
 # Validation and Settings
-pydantic>=2.10.0
-pydantic-settings>=2.7.0
+pydantic[email]==2.10.3
+pydantic-settings==2.7.1
 
 # Environment
 python-dotenv>=1.0.1
+
+requests==2.32.3
