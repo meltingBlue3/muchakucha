@@ -73,3 +73,9 @@ dmypy.json
 # OS
 Thumbs.db
 
+# Docker
+# 保留 .dockerignore
+docker-compose.override.yml
+nginx/nginx.conf
+nginx/ssl/
+*.pid
