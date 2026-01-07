@@ -28,11 +28,20 @@ def get_events(
     group_id: int,
     start_date: datetime | None = Query(None),
     end_date: datetime | None = Query(None),
+    label_ids: str | None = Query(None, description="标签ID列表，逗号分隔，如: 1,2,3"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """获取事件列表（支持日期范围过滤）"""
-    events = EventService.get_group_events(db, group_id, current_user.id, start_date, end_date)
+    """获取事件列表（支持日期范围和标签过滤）"""
+    # 解析标签ID列表
+    parsed_label_ids = None
+    if label_ids:
+        try:
+            parsed_label_ids = [int(lid.strip()) for lid in label_ids.split(",") if lid.strip()]
+        except ValueError:
+            parsed_label_ids = None
+    
+    events = EventService.get_group_events(db, group_id, current_user.id, start_date, end_date, parsed_label_ids)
     return events
 
 

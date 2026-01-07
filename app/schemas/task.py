@@ -14,7 +14,7 @@ class TaskBase(BaseModel):
 
 class TaskCreate(TaskBase):
     """任务创建模式"""
-    pass
+    label_ids: list[int] = []
 
 
 class TaskUpdate(BaseModel):
@@ -25,6 +25,7 @@ class TaskUpdate(BaseModel):
     status: str | None = None
     priority: str | None = None
     assigned_to: int | None = None
+    label_ids: list[int] | None = None
 
 
 class TaskInDB(TaskBase):
@@ -40,5 +41,15 @@ class TaskInDB(TaskBase):
 
 class Task(TaskInDB):
     """任务响应模式"""
-    pass
+    labels: list["LabelBasic"] = []
+
+
+# 避免循环导入，定义简化的标签模式
+class LabelBasic(BaseModel):
+    """标签基础信息"""
+    id: int
+    name: str
+    color: str
+    
+    model_config = ConfigDict(from_attributes=True)
 

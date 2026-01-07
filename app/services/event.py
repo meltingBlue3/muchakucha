@@ -3,8 +3,10 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundException
 from app.models.event import Event
+from app.models.label import EventLabel
 from app.schemas.event import EventCreate, EventUpdate
 from app.services.group import GroupService
+from app.services.label import LabelService
 
 
 class EventService:
@@ -29,6 +31,15 @@ class EventService:
         db.add(db_event)
         db.commit()
         db.refresh(db_event)
+        
+        # 添加标签关联
+        if event_data.label_ids:
+            for label_id in event_data.label_ids:
+                LabelService.add_label_to_event(db, db_event.id, label_id)
+            db.commit()
+        
+        # 加载标签
+        db_event.labels = LabelService.get_event_labels(db, db_event.id)
         return db_event
     
     @staticmethod
@@ -40,6 +51,9 @@ class EventService:
         event = db.query(Event).filter(Event.id == event_id, Event.group_id == group_id).first()
         if not event:
             raise NotFoundException(detail="Event not found")
+        
+        # 加载标签
+        event.labels = LabelService.get_event_labels(db, event.id)
         return event
     
     @staticmethod
@@ -48,7 +62,8 @@ class EventService:
         group_id: int, 
         user_id: int,
         start_date: datetime | None = None,
-        end_date: datetime | None = None
+        end_date: datetime | None = None,
+        label_ids: list[int] | None = None
     ) -> list[Event]:
         """获取群组的事件列表"""
         # 检查群组访问权限
@@ -62,7 +77,16 @@ class EventService:
         if end_date:
             query = query.filter(Event.start_time <= end_date)
         
+        # 标签过滤
+        if label_ids:
+            query = query.join(EventLabel).filter(EventLabel.label_id.in_(label_ids)).distinct()
+        
         events = query.order_by(Event.start_time).all()
+        
+        # 为每个事件加载标签
+        for event in events:
+            event.labels = LabelService.get_event_labels(db, event.id)
+        
         return events
     
     @staticmethod
@@ -83,8 +107,19 @@ class EventService:
         if event_data.location is not None:
             event.location = event_data.location
         
+        # 更新标签关联
+        if event_data.label_ids is not None:
+            # 删除现有标签关联
+            db.query(EventLabel).filter(EventLabel.event_id == event_id).delete()
+            # 添加新的标签关联
+            for label_id in event_data.label_ids:
+                LabelService.add_label_to_event(db, event_id, label_id)
+        
         db.commit()
         db.refresh(event)
+        
+        # 加载标签
+        event.labels = LabelService.get_event_labels(db, event.id)
         return event
     
     @staticmethod

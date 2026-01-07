@@ -27,11 +27,20 @@ def get_tasks(
     group_id: int,
     status: str | None = Query(None),
     priority: str | None = Query(None),
+    label_ids: str | None = Query(None, description="标签ID列表，逗号分隔，如: 1,2,3"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """获取任务列表（支持状态/优先级过滤）"""
-    tasks = TaskService.get_group_tasks(db, group_id, current_user.id, status, priority)
+    """获取任务列表（支持状态/优先级/标签过滤）"""
+    # 解析标签ID列表
+    parsed_label_ids = None
+    if label_ids:
+        try:
+            parsed_label_ids = [int(lid.strip()) for lid in label_ids.split(",") if lid.strip()]
+        except ValueError:
+            parsed_label_ids = None
+    
+    tasks = TaskService.get_group_tasks(db, group_id, current_user.id, status, priority, parsed_label_ids)
     return tasks
 
 

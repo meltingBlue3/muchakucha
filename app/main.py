@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import init_db
-from app.api import auth, users, groups, events, tasks, notes
+from app.api import auth, users, groups, events, tasks, notes, labels
 
 # 创建 FastAPI 应用
 app = FastAPI(
@@ -30,6 +30,7 @@ app.include_router(groups.router)
 app.include_router(events.router)
 app.include_router(tasks.router)
 app.include_router(notes.router)
+app.include_router(labels.router)
 
 
 @app.on_event("startup")

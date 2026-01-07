@@ -2,8 +2,10 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import NotFoundException
 from app.models.task import Task
+from app.models.label import TaskLabel
 from app.schemas.task import TaskCreate, TaskUpdate
 from app.services.group import GroupService
+from app.services.label import LabelService
 
 
 class TaskService:
@@ -28,6 +30,15 @@ class TaskService:
         db.add(db_task)
         db.commit()
         db.refresh(db_task)
+        
+        # 添加标签关联
+        if task_data.label_ids:
+            for label_id in task_data.label_ids:
+                LabelService.add_label_to_task(db, db_task.id, label_id)
+            db.commit()
+        
+        # 加载标签
+        db_task.labels = LabelService.get_task_labels(db, db_task.id)
         return db_task
     
     @staticmethod
@@ -39,6 +50,9 @@ class TaskService:
         task = db.query(Task).filter(Task.id == task_id, Task.group_id == group_id).first()
         if not task:
             raise NotFoundException(detail="Task not found")
+        
+        # 加载标签
+        task.labels = LabelService.get_task_labels(db, task.id)
         return task
     
     @staticmethod
@@ -47,7 +61,8 @@ class TaskService:
         group_id: int, 
         user_id: int,
         status: str | None = None,
-        priority: str | None = None
+        priority: str | None = None,
+        label_ids: list[int] | None = None
     ) -> list[Task]:
         """获取群组的任务列表"""
         # 检查群组访问权限
@@ -63,7 +78,16 @@ class TaskService:
         if priority:
             query = query.filter(Task.priority == priority)
         
+        # 标签过滤
+        if label_ids:
+            query = query.join(TaskLabel).filter(TaskLabel.label_id.in_(label_ids)).distinct()
+        
         tasks = query.order_by(Task.created_at.desc()).all()
+        
+        # 为每个任务加载标签
+        for task in tasks:
+            task.labels = LabelService.get_task_labels(db, task.id)
+        
         return tasks
     
     @staticmethod
@@ -84,8 +108,19 @@ class TaskService:
         if task_data.assigned_to is not None:
             task.assigned_to = task_data.assigned_to
         
+        # 更新标签关联
+        if task_data.label_ids is not None:
+            # 删除现有标签关联
+            db.query(TaskLabel).filter(TaskLabel.task_id == task_id).delete()
+            # 添加新的标签关联
+            for label_id in task_data.label_ids:
+                LabelService.add_label_to_task(db, task_id, label_id)
+        
         db.commit()
         db.refresh(task)
+        
+        # 加载标签
+        task.labels = LabelService.get_task_labels(db, task.id)
         return task
     
     @staticmethod
