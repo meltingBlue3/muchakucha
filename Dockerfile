@@ -1,8 +1,14 @@
 # 多阶段构建 - 第一阶段：构建阶段
-FROM python:3.11-slim as builder
+FROM python:3.11-slim-bookworm AS builder
 
 # 设置工作目录
 WORKDIR /app
+
+RUN rm -f /etc/apt/sources.list.d/debian.sources \
+ && printf "deb https://mirrors.aliyun.com/debian bookworm main contrib non-free non-free-firmware\n\
+deb https://mirrors.aliyun.com/debian-security bookworm-security main contrib non-free non-free-firmware\n\
+deb https://mirrors.aliyun.com/debian bookworm-updates main contrib non-free non-free-firmware\n" \
+ > /etc/apt/sources.list
 
 # 安装系统依赖
 RUN apt-get update && apt-get install -y \
@@ -17,10 +23,16 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --user -r requirements.txt
 
 # 第二阶段：运行阶段
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
 
 # 设置工作目录
 WORKDIR /app
+
+RUN rm -f /etc/apt/sources.list.d/debian.sources \
+ && printf "deb https://mirrors.aliyun.com/debian bookworm main contrib non-free non-free-firmware\n\
+deb https://mirrors.aliyun.com/debian-security bookworm-security main contrib non-free non-free-firmware\n\
+deb https://mirrors.aliyun.com/debian bookworm-updates main contrib non-free non-free-firmware\n" \
+ > /etc/apt/sources.list
 
 # 安装运行时依赖
 RUN apt-get update && apt-get install -y \
@@ -51,5 +63,6 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
 
 # 启动命令（生产环境配置）
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+# CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+CMD ["python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
