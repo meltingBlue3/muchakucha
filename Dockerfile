@@ -20,7 +20,7 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 
 # 安装 Python 依赖到临时目录
-RUN pip install --no-cache-dir --user -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # 第二阶段：运行阶段
 FROM python:3.11-slim-bookworm
@@ -39,11 +39,14 @@ RUN apt-get update && apt-get install -y \
     libmariadb-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# 从构建阶段复制已安装的依赖
-COPY --from=builder /root/.local /root/.local
+## 从构建阶段复制已安装的依赖
+#COPY --from=builder /root/.local /root/.local
+#
+## 确保 Python 可以找到用户安装的包
+#ENV PATH=/root/.local/bin:$PATH
 
-# 确保 Python 可以找到用户安装的包
-ENV PATH=/root/.local/bin:$PATH
+# 关键：把 /usr/local 整体复制过来（site-packages 在这里）
+COPY --from=builder /usr/local /usr/local
 
 # 复制应用代码
 COPY . .
