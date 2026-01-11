@@ -16,4 +16,4 @@ RUN useradd -m -u 1000 appuser && \
 
 USER appuser
 
-CMD exec python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
+CMD ["sh", "-c", "exec python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT"]
