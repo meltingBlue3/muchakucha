@@ -52,7 +52,6 @@ htmlcov/
 *.md
 !README.md
 docs/
-DEPLOYMENT.md
 
 # Database
 *.db
